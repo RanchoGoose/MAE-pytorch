@@ -69,7 +69,7 @@ class PretrainVisionTransformerEncoder(nn.Module):
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
-            trunc_normal_(m.weight, std=.02)
+            nn.init.xavier_uniform_(m.weight)
             if isinstance(m, nn.Linear) and m.bias is not None:
                 nn.init.constant_(m.bias, 0)
         elif isinstance(m, nn.LayerNorm):
@@ -142,7 +142,7 @@ class PretrainVisionTransformerDecoder(nn.Module):
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
-            trunc_normal_(m.weight, std=.02)
+            nn.init.xavier_uniform_(m.weight)
             if isinstance(m, nn.Linear) and m.bias is not None:
                 nn.init.constant_(m.bias, 0)
         elif isinstance(m, nn.LayerNorm):
@@ -177,7 +177,7 @@ class PretrainVisionTransformerDecoder(nn.Module):
 class PretrainVisionTransformer(nn.Module):
     """ Vision Transformer with support for patch or hybrid CNN input stage
     """
-    def __init__(self, 
+    def __init__(self,
                  img_size=224, 
                  patch_size=16, 
                  encoder_in_chans=3, 
@@ -199,6 +199,8 @@ class PretrainVisionTransformer(nn.Module):
                  init_values=0.,
                  use_learnable_pos_emb=False,
                  target_shrink=1.,
+                 num_classes=0, # avoid the error from create_fn in timm
+                 in_chans=0, # avoid the error from create_fn in timm
                  ):
         super().__init__()
         self.encoder = PretrainVisionTransformerEncoder(
@@ -247,7 +249,7 @@ class PretrainVisionTransformer(nn.Module):
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
-            trunc_normal_(m.weight, std=.02)
+            nn.init.xavier_uniform_(m.weight)
             if isinstance(m, nn.Linear) and m.bias is not None:
                 nn.init.constant_(m.bias, 0)
         elif isinstance(m, nn.LayerNorm):
