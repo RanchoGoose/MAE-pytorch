@@ -116,8 +116,8 @@ class PretrainVisionTransformerDecoder(nn.Module):
     """
     def __init__(self, patch_size=16, num_classes=768, embed_dim=768, depth=12,
                  num_heads=12, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop_rate=0., attn_drop_rate=0.,
-                 drop_path_rate=0., norm_layer=nn.LayerNorm, init_values=None, num_patches=196,
-                 ):
+                 drop_path_rate=0., norm_layer=nn.LayerNorm, init_values=None, num_patches=196, target_shrink=1.,
+                 ): # target_shrink means shrinking the target images by ratio 
         super().__init__()
         self.num_classes = num_classes
         assert num_classes == 3 * patch_size ** 2
@@ -132,7 +132,10 @@ class PretrainVisionTransformerDecoder(nn.Module):
                 init_values=init_values)
             for i in range(depth)])
         self.norm =  norm_layer(embed_dim)
-        self.head = nn.Linear(embed_dim, num_classes) if num_classes > 0 else nn.Identity()
+
+        target_dim = int(num_classes * target_shrink * target_shrink)
+        # self.head = nn.Linear(embed_dim, num_classes) if num_classes > 0 else nn.Identity()
+        self.head = nn.Linear(embed_dim, target_dim) if target_dim > 0 else nn.Identity()
 
         self.apply(self._init_weights)
 
@@ -167,7 +170,7 @@ class PretrainVisionTransformerDecoder(nn.Module):
         if return_token_num > 0:
             x = self.head(self.norm(x[:, -return_token_num:])) # only return the mask tokens predict pixels
         else:
-            x = self.head(self.norm(x)) # [B, N, 3*16^2]
+            x = self.head(self.norm(x)) # [B, N, 3*16^2] when target_shrink = 1.0
 
         return x
 
@@ -194,7 +197,9 @@ class PretrainVisionTransformer(nn.Module):
                  drop_path_rate=0., 
                  norm_layer=nn.LayerNorm, 
                  init_values=0.,
-                 use_learnable_pos_emb=False):
+                 use_learnable_pos_emb=False,
+                 target_shrink=1.,
+                 ):
         super().__init__()
         self.encoder = PretrainVisionTransformerEncoder(
             img_size=img_size, 
@@ -228,7 +233,8 @@ class PretrainVisionTransformer(nn.Module):
             attn_drop_rate=attn_drop_rate,
             drop_path_rate=drop_path_rate, 
             norm_layer=norm_layer, 
-            init_values=init_values)
+            init_values=init_values,
+            target_shrink=target_shrink)
 
         self.encoder_to_decoder = nn.Linear(encoder_embed_dim, decoder_embed_dim, bias=False)
 
@@ -263,7 +269,7 @@ class PretrainVisionTransformer(nn.Module):
         B, N, C = x_vis.shape
         
         # we don't unshuffle the correct visible token order, 
-        # but shuffle the pos embedding accorddingly.
+        # but shuffle the pos embedding accordingly.
         expand_pos_embed = self.pos_embed.expand(B, -1, -1).type_as(x).to(x.device).clone().detach()
         pos_emd_vis = expand_pos_embed[~mask].reshape(B, -1, C)
         pos_emd_mask = expand_pos_embed[mask].reshape(B, -1, C)

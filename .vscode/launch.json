@@ -1,0 +1,29 @@
+{
+	// 使用 IntelliSense 了解相关属性。 
+	// 悬停以查看现有属性的描述。
+	// 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Python: debug",
+			"type": "python",
+			"request": "launch",
+			"program": "run_mae_pretraining.py",
+			"console": "integratedTerminal",
+			"args": [
+				"--data_path", "/opt/data/common/ImageNet/ILSVRC2012",
+				//"/xiangli/Dataset/ILSVRC2012",
+				"--mask_ratio", "0.75",
+				"--model", "pretrain_mae_base_patch16_224",
+				"--batch_size", "4",
+				"--opt", "adamw",
+				"--opt_betas", "0.9", "0.95",
+				"--warmup_epochs", "5",
+				"--epochs", "10",
+				"--output_dir", "/xiangli/MAE-pytorch/output/tmp",
+				"--target_shrink", "0.25",
+			],
+			"justMyCode": false
+		}
+	]
+}

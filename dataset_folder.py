@@ -6,6 +6,8 @@
 # https://github.com/facebookresearch/dino
 # --------------------------------------------------------'
 from torchvision.datasets.vision import VisionDataset
+from torchvision.datasets.folder import default_loader
+from torchvision import datasets
 
 from PIL import Image
 
@@ -243,3 +245,49 @@ class ImageFolder(DatasetFolder):
                                           target_transform=target_transform,
                                           is_valid_file=is_valid_file)
         self.imgs = self.samples
+
+
+class ImageListFolder(ImageFolder):
+    def __init__(self, root, transform=None, target_transform=None,
+                 ann_file=None, loader=default_loader):
+        self.transform = transform
+        self.loader = loader
+        self.target_transform = target_transform
+        self.nb_classes = 1000
+
+        assert ann_file is not None
+        print('load info from', ann_file)
+
+        self.samples = []
+        ann = open(ann_file)
+        for elem in ann.readlines():
+            cut = elem.split(' ')
+            path_current = os.path.join(root, cut[0])
+            target_current = int(cut[1])
+            self.samples.append((path_current, target_current))
+        ann.close()
+
+        print('load finish')
+
+
+class ImageNetFolder(datasets.ImageFolder):
+    def __init__(self, root, transform=None, target_transform=None,
+                 ann_file=None, loader=default_loader):
+        self.transform = transform
+        self.loader = loader
+        self.target_transform = target_transform
+        self.nb_classes = 1000
+
+        assert ann_file is not None
+        print('load info from', ann_file)
+
+        self.samples = []
+        ann = open(ann_file)
+        for elem in ann.readlines():
+            cut = elem.split(' ')
+            path_current = os.path.join(root, cut[0])
+            target_current = int(cut[1])
+            self.samples.append((path_current, target_current))
+        ann.close()
+
+        print('load finish')

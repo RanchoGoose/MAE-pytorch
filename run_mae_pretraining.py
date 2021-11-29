@@ -31,7 +31,7 @@ def get_args():
     parser = argparse.ArgumentParser('MAE pre-training script', add_help=False)
     parser.add_argument('--batch_size', default=64, type=int)
     parser.add_argument('--epochs', default=300, type=int)
-    parser.add_argument('--save_ckpt_freq', default=20, type=int)
+    parser.add_argument('--save_ckpt_freq', default=100, type=int)
 
     # Model parameters
     parser.add_argument('--model', default='pretrain_mae_base_patch16_224', type=str, metavar='MODEL',
@@ -48,6 +48,8 @@ def get_args():
                         
     parser.add_argument('--normlize_target', default=True, type=bool,
                         help='normalized the target patch pixels')
+    parser.add_argument('--target_shrink', default=1., type=float,
+                        help='target image to be shrunken, 1.0, 0.5 or 0.25 usually (default 1.0)')
 
     # Optimizer parameters
     parser.add_argument('--opt', default='adamw', type=str, metavar='OPTIMIZER',
@@ -103,7 +105,7 @@ def get_args():
 
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
-    parser.add_argument('--num_workers', default=10, type=int)
+    parser.add_argument('--num_workers', default=8, type=int)
     parser.add_argument('--pin_mem', action='store_true',
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
     parser.add_argument('--no_pin_mem', action='store_false', dest='pin_mem',
@@ -127,6 +129,7 @@ def get_model(args):
         pretrained=False,
         drop_path_rate=args.drop_path,
         drop_block_rate=None,
+        target_shrink=args.target_shrink, # add for target shrink
     )
 
     return model
@@ -156,7 +159,8 @@ def main(args):
     # get dataset
     dataset_train = build_pretraining_dataset(args)
 
-    if True:  # args.distributed:
+    #if True:  # args.distributed:
+    if args.distributed:
         num_tasks = utils.get_world_size()
         global_rank = utils.get_rank()
         sampler_rank = global_rank
@@ -167,9 +171,10 @@ def main(args):
         )
         print("Sampler_train = %s" % str(sampler_train))
     else:
+        num_training_steps_per_epoch = len(dataset_train) // args.batch_size
         sampler_train = torch.utils.data.RandomSampler(dataset_train)
 
-    if global_rank == 0 and args.log_dir is not None:
+    if args.distributed and global_rank == 0 and args.log_dir is not None:
         os.makedirs(args.log_dir, exist_ok=True)
         log_writer = utils.TensorboardLogger(log_dir=args.log_dir)
     else:
@@ -236,6 +241,7 @@ def main(args):
             wd_schedule_values=wd_schedule_values,
             patch_size=patch_size[0],
             normlize_target=args.normlize_target,
+            target_shrink=args.target_shrink,
         )
         if args.output_dir:
             if (epoch + 1) % args.save_ckpt_freq == 0 or epoch + 1 == args.epochs:

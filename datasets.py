@@ -16,7 +16,7 @@ from timm.data.constants import \
 from timm.data import create_transform
 
 from masking_generator import RandomMaskingGenerator
-from dataset_folder import ImageFolder
+from dataset_folder import ImageFolder, ImageListFolder, ImageNetFolder
 
 
 class DataAugmentationForMAE(object):
@@ -51,7 +51,10 @@ class DataAugmentationForMAE(object):
 def build_pretraining_dataset(args):
     transform = DataAugmentationForMAE(args)
     print("Data Aug = %s" % str(transform))
-    return ImageFolder(args.data_path, transform=transform)
+    #return ImageFolder(args.data_path, transform=transform)
+    train_folder = os.path.join(args.data_path, 'train')
+    train_ann_file = os.path.join(args.data_path, 'train.txt')
+    return ImageListFolder(train_folder, transform=transform, ann_file=train_ann_file)
 
 
 def build_dataset(is_train, args):
@@ -73,7 +76,9 @@ def build_dataset(is_train, args):
         nb_classes = 100
     elif args.data_set == 'IMNET':
         root = os.path.join(args.data_path, 'train' if is_train else 'val')
-        dataset = datasets.ImageFolder(root, transform=transform)
+        root_ann = os.path.join(args.data_path, 'train.txt' if is_train else 'val(1).txt')
+        #dataset = datasets.ImageFolder(root, transform=transform)
+        dataset = ImageNetFolder(root, transform=transform, ann_file=root_ann)
         nb_classes = 1000
     elif args.data_set == "image_folder":
         root = args.data_path if is_train else args.eval_data_path
